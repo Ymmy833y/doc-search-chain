@@ -1,0 +1,2 @@
+class NoReadableDocumentsError(Exception):
+  pass

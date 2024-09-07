@@ -1,0 +1,45 @@
+@charset "utf-8";
+
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+#response blockquote {
+  padding-left: 6px;
+  border-left: 4px solid #777777;
+}
+
+#response table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#response table th,
+#response table td {
+  padding: 1vmin;
+  border: solid 2px #777777;
+  word-break: break-all;
+}
+
+#response table tbody tr:hover {
+  opacity: 0.75;
+}
+
+#response img {
+  width: 100%;
+}
+
+#response a {
+  word-break: break-all;
+}
+
+#response pre {
+  white-space: pre-wrap;
+}
+
+#response pre,
+#response pre code,
+#response pre code span {
+  word-break: break-all;
+}

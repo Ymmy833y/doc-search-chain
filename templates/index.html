@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="{{ setting.theme }}">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>doc search chain</title>
+  <link rel="shortcut icon" href="{{ url_for('static', filename='img/icon.ico') }}" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+  <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/a11y-{% if setting.theme == 'dark' %}dark{% else %}light{% endif %}.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</head>
+
+<body>
+  <header class="p-2 mb-4 shadow-sm">
+    <div class="container-xxl d-flex flex-wrap justify-content-between">
+      <a href="/" class="text-body text-decoration-none">
+        <h1 class="text-center text-uppercase fw-lighter fs-2">doc search chain</h1>
+      </a>
+      <button class="btn btn-outline-secondary rounded-circle border" type="button" data-bs-toggle="offcanvas"
+        data-bs-target="#setting-offcanvas" aria-controls="setting-offcanvas">
+        <i class="bi bi-gear fs-4"></i>
+      </button>
+    </div>
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="setting-offcanvas">
+      <div class="offcanvas-header">
+        <h2>
+          <i class="bi bi-gear fs-4"></i>
+          <span class="align-middle fs-5">Setting</span>
+        </h2>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body">
+        <form action="/settingForm" method="post">
+          <div class="row mb-4">
+            <div class="col-md-3 col-4">
+              <label for="default_language" class="col-form-label">Default Language</label>
+            </div>
+            <div class="col-md-9 col-6 d-flex align-items-center" aria-describedby="default_languageHelp">
+              <select class="form-select" id="default_language" name="default_language">
+                <option value="Japanese" {% if setting.default_language=='Japanese' %}selected{% endif %}>Japanese
+                </option>
+                <option value="English" {% if setting.default_language=='English' %}selected{% endif %}>English</option>
+              </select>
+            </div>
+            <div id="default_languageHelp" class="form-text">The language used for generating text.</div>
+          </div>
+          <div class="row mb-4">
+            <div class="col-md-3 col-4">
+              <label for="theme" class="col-form-label">Theme</label>
+            </div>
+            <div class="col-md-9 col-6 d-flex align-items-center">
+              <select class="form-select" id="theme" name="theme">
+                <option value="light" {% if setting.theme=='light' %}selected{% endif %}>Light</option>
+                <option value="dark" {% if setting.theme=='dark' %}selected{% endif %}>Dark</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mb-4">
+            <div class="col-md-3 col-4">
+              <label for="api_key" class="col-form-label">OpenAI Api Key</label>
+            </div>
+            <div class="col-md-9 col-6 d-flex align-items-center">
+              <input class="form-control" type="text" id="api_key" name="api_key" value="{{ setting.api_key }}">
+            </div>
+          </div>
+          <div class="text-end">
+            <button class="btn btn-outline-primary w-25" type="submit">Confirm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </header>
+  <main class="container-xxl">
+    <div class="d-flex align-items-start">
+      <div class="nav flex-column nav-pills me-3 r border-end border-bottom rounded-end" role="tablist"
+        aria-orientation="vertical">
+        <button
+          class="nav-link text-uppercase font-monospace vertical-text py-4  {% if select_tab == 'search' %}active{% endif %}"
+          id="search-tab" data-bs-toggle="pill" data-bs-target="#search-tab-content" type="button" role="tab"
+          aria-controls="search-tab-content"
+          aria-selected="{% if select_tab == 'search' %}true{% else %}false{% endif %}">
+          Search
+        </button>
+        <button
+          class="nav-link text-uppercase font-monospace vertical-text py-4 {% if select_tab == 'document' %}active{% endif %}"
+          id="document-tab" data-bs-toggle="pill" data-bs-target="#document-tab-content" type="button" role="tab"
+          aria-controls="document-tab-content"
+          aria-selected="{% if select_tab == 'document' %}true{% else %}false{% endif %}">
+          Document
+        </button>
+      </div>
+      <div class="tab-content w-100">
+        <div class="tab-pane fade {% if select_tab == 'search' %}show active{% endif %}" id="search-tab-content"
+          aria-labelledby="search-tab">
+          <div class="py-5">
+            <h2 class="text-center fs-1 fw-lighter">Search within the document.</h2>
+            <form class="d-flex justify-content-center my-4" action="/searchForm" method="post" id="search-form">
+              <textarea class="form-control form-control-lg w-75 shadow-sm" type="text" placeholder="Send a message"
+                rows="1" id="search-input"></textarea>
+              <button class="btn btn-outline-primary ms-2 shadow-sm" type="submit"><i
+                  class="bi bi-search fs-5"></i></button>
+            </form>
+            <div class="d-flex justify-content-center px-5">
+              <div class="alert alert-danger d-flex align-items-center w-100 d-none" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-3 flex-shrink-0 me-2"></i>
+                <div id="response-error-message"></div>
+              </div>
+              <div class="card card-body d-none" id="response"></div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade {% if select_tab == 'document' %}show active{% endif %}" id="document-tab-content"
+          aria-labelledby="document-tab">
+          <div class="py-5 text-center">
+            <h2 class="fs-1 fw-lighter">Set documents and load them into the model.</h2>
+            <button id="load-document-btn"
+              class="btn btn-lg btn-outline-primary mt-4 shadow-sm {% if files %}{% else %}disabled{% endif %}">
+              Loading the documents
+            </button>
+          </div>
+          <div class="mb-5">
+            <h3 class="fs-5 fw-normal mb-1">Documents to upload</h3>
+            <form action="/uploadForm" method="post" enctype="multipart/form-data">
+              <div class="input-group mb-3">
+                <input class="form-control" type="file" id="docs" name="docs" multiple>
+                <button class="btn btn-outline-primary" type="submit">Upload</button>
+              </div>
+            </form>
+          </div>
+          <div>
+            <h3 class="fs-5 fw-normal mb-1">Uploaded documents</h3>
+            {% if files %}
+            <form action="/removeForm" method="post">
+              <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-outline-secondary btn-sm border">
+                  <i class="bi bi-trash"></i>Remove
+                </button>
+              </div>
+              <table class="table table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col" style="width: 0px;"><input class="form-check-input" type="checkbox"
+                        id="all-file-checkbox"></th>
+                    <th scope="col">file name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for file in files %}
+                  <tr>
+                    <th><input class="form-check-input file-checkbox" type="checkbox" id="{{ file }}" name="{{ file }}">
+                    </th>
+                    <td><label class="form-check-label w-100" for="{{ file }}">{{ file }}</label></td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </form>
+            {% else %}
+            <div class="alert alert-warning d-flex align-items-center my-3" role="alert">
+              <i class="bi bi-exclamation-triangle-fill fs-3 flex-shrink-0 me-2"></i>
+              <p class="mb-0">
+                <span>The file does not exist, so please upload it.</span><br>
+                <span>Also, please be very careful when handling confidential information.</span>
+              </p>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal" tabindex="-1" id="modal">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="modal-body"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bs-custom-file-input/dist/bs-custom-file-input.js"></script>
+</body>
+
+</html>
